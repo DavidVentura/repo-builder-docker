@@ -9,9 +9,7 @@ Dockerfile specified in the config, passing the TAG build argument with the rece
   * The notifications include a link to see the build logs.
 * Build artifacts are pushed to S3. \*
 
-
-![screenshots/telegram-link.png]()
-
+![](screenshots/telegram-link.png)
 
 # TODO
 * Support for artifacts instead of hacking around with the dockerfiles
