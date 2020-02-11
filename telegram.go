@@ -6,15 +6,24 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 )
 
-func notification(msg string) error {
+type Notification struct {
+	msg     string
+	chat_id int
+}
+
+func sendNotification(n Notification) {
+	if n.chat_id == 0 {
+		Log.Println("Not sending notification with ChatId 0")
+		return
+	}
 
 	Log.Println("Sending telegram notification..")
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", os.Getenv("TELEGRAM_BOT_KEY"))
 
-	j, err := json.Marshal(map[string]string{"chat_id": os.Getenv("TELEGRAM_CHAT_ID"),
-		"text": msg})
+	j, err := json.Marshal(map[string]string{"chat_id": strconv.Itoa(n.chat_id), "text": n.msg})
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(j))
 	req.Header.Set("Content-Type", "application/json")
@@ -23,20 +32,16 @@ func notification(msg string) error {
 	if err != nil {
 		Log.Println("Failure sending telegram notification..")
 		Log.Println(err.Error())
-		return err
+		return
 	}
 	defer resp.Body.Close()
 
-	// fmt.Println("response Status:", resp.Status)
-	// fmt.Println("response Headers:", resp.Header)
-	//_, _ := ioutil.ReadAll(resp.Body)
-	// fmt.Println("response Body:", string(body))
 	Log.Println("Succesfully sent telegram notification..")
-	return nil
+	return
 }
 
 func processNotifications() {
 	for msg := range notifications {
-		notification(msg)
+		sendNotification(msg)
 	}
 }

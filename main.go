@@ -33,13 +33,14 @@ type Repo struct {
 	GitUrl                    string
 	RelativePathForDockerfile string
 	Bucket                    string
+	TelegramChatId            int
 
 	dstPath string
 }
 
 var config Configuration
 var Log *log.Logger
-var notifications = make(chan string, 2)
+var notifications = make(chan Notification, 2)
 
 func readConf(path string) {
 	file, err := os.Open(path)
@@ -61,6 +62,12 @@ func readConf(path string) {
 	if config.LogPath == "" {
 		fmt.Println("LogPath must be provided")
 		os.Exit(1)
+	}
+
+	for _, repo := range config.Repos {
+		if repo.TelegramChatId == 0 {
+			fmt.Printf("For repo %+v, telegram chat id is 0, so no notifications will be sent\n", repo)
+		}
 	}
 }
 
