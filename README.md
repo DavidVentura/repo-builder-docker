@@ -18,7 +18,6 @@ Dockerfile specified in the config, passing the TAG build argument with the rece
 2. It must list its artifacts, one artifact per line, in `/artifacts`
 
 # TODO
-* Move telegram_chat_id to per-repo config
 * Per-Build lock to avoid concurrent builds (or clone once per tag?)
 
 # Configuration
@@ -38,25 +37,27 @@ TELEGRAM_BOT_KEY=XXXXXXXXX:YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 
 ```json
 
+
 {
     "LogPath": "/tmp/",
     "repoCloneBase": "/tmp/",
     "Repos": [
         {
             "Name":                      "Recipes",
-            "GitUrl":                    "ssh://git@gogs.davidventura.com.ar:2222/tati/kitchn.git",
+            "GitUrl":                    "ssh://git@gogs:2222/tati/kitchn.git",
             "RelativePathForDockerfile": "build/Dockerfile",
-            "Bucket":                    "recipes"
+            "Bucket":                    "recipes",
+            "TelegramChatId":            -311945893
         },
         {
             "Name":                      "Test Repo",
-            "GitUrl":                    "ssh://git@gogs.davidventura.com.ar:2222/david/test.git",
+            "GitUrl":                    "ssh://git@gogs:2222/david/test.git",
             "RelativePathForDockerfile": "build/Dockerfile",
-            "Bucket":                    "testrepo"
+            "Bucket":                    "testrepo",
+            "TelegramChatId":            1719831
         }
     ]
 }
-
 
 ```
 
