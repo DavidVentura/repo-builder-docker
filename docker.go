@@ -13,6 +13,7 @@ func dockerBuild(repo Repo, hookData HookData, output io.Writer) error {
 
 	buildCmd := exec.Command("docker", "build",
 		"--build-arg", fmt.Sprintf("TAG=%s", hookData.Tag),
+		"--build-arg", fmt.Sprintf("BUCKET_NAME=%s", repo.Bucket),
 		"--build-arg", fmt.Sprintf("S3_ACCESS_KEY=%s", os.Getenv("S3_ACCESS_KEY")),
 		"--build-arg", fmt.Sprintf("S3_SECRET_KEY=%s", os.Getenv("S3_SECRET_KEY")),
 		dockerfileDir,
