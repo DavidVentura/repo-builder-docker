@@ -15,7 +15,7 @@ import (
 var logTemplate = template.Must(template.New("logTemplate").Parse(`
 	<html>
 	<head><meta http-equiv='refresh' content='3'></head>
-	<body>{{.}}</body>
+	<body><pre>{{.}}</pre></body>
 	</html>`))
 
 func hookEndpoint() {
@@ -39,7 +39,9 @@ func logHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	content, err := ioutil.ReadAll(file)
-	logTemplate.Execute(w, string(content))
+	//contentStr := strings.ReplaceAll(string(content), "\n", "<br/>")
+	contentStr := string(content)
+	logTemplate.Execute(w, contentStr)
 
 }
 
@@ -86,10 +88,11 @@ func buildRepo(repo Repo, hookData HookData) {
 	defer buildLog.Close()
 	defer buildLog.Sync()
 
-	err = cloneRepo(repo, buildLog)
+	err = cloneRepo(repo, hookData, buildLog)
 	if err != nil {
 		buildLog.Write([]byte("Failed to clone repo!\n"))
-		os.Exit(1)
+		buildLog.Write([]byte(err.Error()))
+		return
 	}
 	logUrl := fmt.Sprintf("http://ci.labs/logs/%s", logName)
 	notification(fmt.Sprintf("Starting build for %s, you can find the logs at %s", repo.Name, logUrl))
@@ -97,7 +100,7 @@ func buildRepo(repo Repo, hookData HookData) {
 	if err != nil {
 		Log.Printf("Failed building repo %+v", repo)
 		notification("Build failed!")
-		buildLog.Write([]byte("Failed to build repo!\n"))
+		buildLog.Write([]byte(fmt.Sprintf("Failed to build repo!\n%s\n", err.Error())))
 		return
 	}
 	notification(fmt.Sprintf("Build of %s@%s succeeded!", repo.Name, hookData.Tag))
