@@ -39,6 +39,7 @@ type Repo struct {
 
 var config Configuration
 var Log *log.Logger
+var notifications = make(chan string, 2)
 
 func readConf(path string) {
 	file, err := os.Open(path)
@@ -86,5 +87,6 @@ func main() {
 	Log = log.New(mw, "", log.Ldate|log.Ltime|log.Lshortfile)
 
 	fmt.Printf("%+v\n", config)
+	go processNotifications()
 	hookEndpoint()
 }

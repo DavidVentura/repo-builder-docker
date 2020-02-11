@@ -95,14 +95,14 @@ func buildRepo(repo Repo, hookData HookData) {
 		return
 	}
 	logUrl := fmt.Sprintf("http://ci.labs/logs/%s", logName)
-	notification(fmt.Sprintf("Starting build for %s, you can find the logs at %s", repo.Name, logUrl))
+	notifications <- fmt.Sprintf("Starting build for %s, you can find the logs at %s", repo.Name, logUrl)
 	err = dockerBuild(repo, hookData, buildLog)
 	if err != nil {
 		Log.Printf("Failed building repo %+v", repo)
-		notification("Build failed!")
+		notifications <- "Build failed!"
 		buildLog.Write([]byte(fmt.Sprintf("Failed to build repo!\n%s\n", err.Error())))
 		return
 	}
-	notification(fmt.Sprintf("Build of %s@%s succeeded!", repo.Name, hookData.Tag))
+	notifications <- fmt.Sprintf("Build of %s@%s succeeded!", repo.Name, hookData.Tag)
 	Log.Printf("Finished building repo %+v", repo)
 }

@@ -34,3 +34,9 @@ func notification(msg string) error {
 	Log.Println("Succesfully sent telegram notification..")
 	return nil
 }
+
+func processNotifications() {
+	for msg := range notifications {
+		notification(msg)
+	}
+}
