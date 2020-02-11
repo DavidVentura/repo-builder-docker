@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -10,6 +11,12 @@ import (
 	"strings"
 	"time"
 )
+
+var logTemplate = template.Must(template.New("logTemplate").Parse(`
+	<html>
+	<head><meta http-equiv='refresh' content='3'></head>
+	<body>{{.}}</body>
+	</html>`))
 
 func hookEndpoint() {
 	http.HandleFunc("/hook", hookHandler)
@@ -32,7 +39,7 @@ func logHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	content, err := ioutil.ReadAll(file)
-	w.Write(content)
+	logTemplate.Execute(w, string(content))
 
 }
 
@@ -91,7 +98,7 @@ func buildRepo(repo Repo, hookData HookData) {
 		Log.Printf("Failed building repo %+v", repo)
 		notification("Build failed!")
 		buildLog.Write([]byte("Failed to build repo!\n"))
-		os.Exit(1)
+		return
 	}
 	notification(fmt.Sprintf("Build of %s@%s succeeded!", repo.Name, hookData.Tag))
 	Log.Printf("Finished building repo %+v", repo)
