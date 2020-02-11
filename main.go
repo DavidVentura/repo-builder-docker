@@ -32,7 +32,9 @@ type Repo struct {
 	Name                      string
 	GitUrl                    string
 	RelativePathForDockerfile string
-	dstPath                   string
+	Bucket                    string
+
+	dstPath string
 }
 
 var config Configuration
@@ -70,7 +72,7 @@ func main() {
 	readConf(os.Args[1])
 	// TODO isdir
 	t := time.Now()
-	logFname := fmt.Sprintf("%d%02d%02d-%02d%02d%02d.log",
+	logFname := fmt.Sprintf("ci-builder-%d%02d%02d-%02d%02d%02d.log",
 		t.Year(), t.Month(), t.Day(),
 		t.Hour(), t.Minute(), t.Second())
 	daemonLog, err := os.Create(path.Join(config.LogPath, logFname))
