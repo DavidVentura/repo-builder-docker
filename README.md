@@ -1,6 +1,6 @@
 
-This tool listens for HTTP Post requests coming from [gogs.io](Gogs) and on `tag creation`
-[https://gogs.io/docs/features/webhook.html](event), it will execute Docker, targeting the
+This tool listens for HTTP Post requests coming from [Gogs](gogs.io) and on `tag creation`
+[event](https://gogs.io/docs/features/webhook.html), it will execute Docker, targeting the
 Dockerfile specified in the config, passing the TAG build argument with the received `ref`.
 
 
