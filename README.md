@@ -37,12 +37,12 @@ TELEGRAM_BOT_KEY=XXXXXXXXX:YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
     "Repos": [
     {
         "Name":                      "Recipes",
-        "GitUrl":                    "ssh://git@gogs.davidventura.com.ar:2222/tati/kitchn.git",
+        "GitUrl":                    "ssh://git@gogs:2222/tati/kitchn.git",
         "RelativePathForDockerfile": "build/Dockerfile"
     },
     {
         "Name":                      "Test Repo",
-        "GitUrl":                    "ssh://git@gogs.davidventura.com.ar:2222/david/test.git",
+        "GitUrl":                    "ssh://git@gogs:2222/david/test.git",
         "RelativePathForDockerfile": "build/Dockerfile"
     }
     ]
