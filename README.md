@@ -29,7 +29,6 @@ The following environment variables are used
 ```
 S3_ACCESS_KEY=access_key
 S3_SECRET_KEY=secret_key
-TELEGRAM_CHAT_ID=XXXXXXX
 TELEGRAM_BOT_KEY=XXXXXXXXX:YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 ```
 
