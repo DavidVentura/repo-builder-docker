@@ -11,7 +11,7 @@ import (
 
 var artifactUploaderDockerfile = `
 FROM builder
-RUN apt-get install --no-install-recommends -y s4cmd
+RUN apt-get install --no-install-recommends -y s4cmd curl
 ARG TAG
 ARG S3_ACCESS_KEY
 ARG S3_SECRET_KEY
@@ -19,6 +19,7 @@ ARG BUCKET_NAME
 ENV http_proxy=
 RUN s4cmd --endpoint-url=http://ci.labs:9000 ls s3://${BUCKET_NAME}/${TAG}/ || s4cmd --endpoint-url=http://ci.labs:9000 mb s3://${BUCKET_NAME}/${TAG}/
 RUN while read -r artifact; do s4cmd --endpoint-url=http://ci.labs:9000 put --force $artifact s3://${BUCKET_NAME}/${TAG}/; done </artifacts
+RUN curl -s http://david-dotopc:8080/deploy/recipes/${TAG}
 `
 
 func dockerBuild(repo Repo, hookData HookData, output io.Writer) error {
