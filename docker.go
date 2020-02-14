@@ -16,10 +16,11 @@ ARG TAG
 ARG S3_ACCESS_KEY
 ARG S3_SECRET_KEY
 ARG BUCKET_NAME
+ARG REPO_NAME
 ENV http_proxy=
 RUN s4cmd --endpoint-url=http://ci.labs:9000 ls s3://${BUCKET_NAME}/${TAG}/ || s4cmd --endpoint-url=http://ci.labs:9000 mb s3://${BUCKET_NAME}/${TAG}/
 RUN while read -r artifact; do s4cmd --endpoint-url=http://ci.labs:9000 put --force $artifact s3://${BUCKET_NAME}/${TAG}/; done </artifacts
-RUN curl -s http://david-dotopc:8080/deploy/recipes/${TAG}
+RUN curl -s http://david-dotopc:8080/deploy/${REPO_NAME}/${TAG}
 `
 
 func dockerBuild(repo Repo, hookData HookData, output io.Writer) error {
@@ -49,6 +50,7 @@ func dockerBuild(repo Repo, hookData HookData, output io.Writer) error {
 
 	buildCmd := exec.Command("docker", "build",
 		"--build-arg", fmt.Sprintf("TAG=%s", hookData.Tag),
+		"--build-arg", fmt.Sprintf("REPO_NAME=%s", repo.Name),
 		"--build-arg", fmt.Sprintf("BUCKET_NAME=%s", repo.Bucket),
 		"--build-arg", fmt.Sprintf("S3_ACCESS_KEY=%s", os.Getenv("S3_ACCESS_KEY")),
 		"--build-arg", fmt.Sprintf("S3_SECRET_KEY=%s", os.Getenv("S3_SECRET_KEY")),
