@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -46,8 +48,8 @@ func logHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func hookHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Header["X-Gogs-Event"][0] != "create" {
-		Log.Printf("Event was not 'create', refusing to work")
+	if r.Header["X-Gogs-Event"][0] != "create" && r.Header["X-Gogs-Event"][0] != "push" {
+		Log.Printf("Event was not 'create' nor 'push', refusing to work")
 		Log.Printf("Headers: %+v", r.Header)
 		return
 	}
@@ -56,16 +58,12 @@ func hookHandler(w http.ResponseWriter, r *http.Request) {
 	body, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(body, &event)
 	Log.Printf("Parsed body of request: %+v", event)
-	if event.Ref_type != "tag" {
-		Log.Printf("Received an event that is not from a tag. Aborting")
-		return
-	}
 	for _, repo := range config.Repos {
 		if repo.GitUrl == event.Repository.Ssh_url {
 			Log.Printf("Repo %+v matches request.", repo)
 			hookData := HookData{
 				GitUrl: repo.GitUrl,
-				Tag:    event.Ref,
+				Ref:    strings.Replace(event.Ref, "refs/heads/", "", 1),
 			}
 			go buildRepo(repo, hookData)
 		}
@@ -76,7 +74,8 @@ func buildRepo(repo Repo, hookData HookData) {
 	repo.dstPath = path.Join(config.RepoCloneBase, repo.Name)
 	logName := fmt.Sprintf("%s-%d.log", repo.Name, time.Now().Nanosecond())
 	logPath := path.Join(config.LogPath, logName)
-	buildLog, err := os.Create(logPath)
+	buildLogFile, err := os.Create(logPath)
+	buildLog := io.MultiWriter(buildLogFile, os.Stdout)
 
 	Log.Printf("Cloning repo %+v, you can find the log at %s", repo, logPath)
 
@@ -85,32 +84,41 @@ func buildRepo(repo Repo, hookData HookData) {
 		return
 	}
 
-	defer buildLog.Close()
-	defer buildLog.Sync()
+	defer buildLogFile.Close()
+	defer buildLogFile.Sync()
 
 	err = cloneRepo(repo, hookData, buildLog)
 	if err != nil {
 		buildLog.Write([]byte("Failed to clone repo!\n"))
 		buildLog.Write([]byte(err.Error()))
+		buildLog.Write([]byte("\n"))
 		return
 	}
-	logUrl := fmt.Sprintf("http://ci.labs/logs/%s", logName)
+	logUrl := fmt.Sprintf("http://ci.labs/logs/%s", url.PathEscape(logName))
 
-	notifications <- Notification{
-		msg:     fmt.Sprintf("Starting build for %s, you can find the logs at %s", repo.Name, logUrl),
-		chat_id: repo.TelegramChatId}
-
-	err = dockerBuild(repo, hookData, buildLog)
+	repoBuildConfig, err := readRepoBuildConfig(repo.dstPath)
 	if err != nil {
-		Log.Printf("Failed building repo %+v", repo)
-		notifications <- Notification{msg: "Build failed!", chat_id: repo.TelegramChatId}
-		buildLog.Write([]byte(fmt.Sprintf("Failed to build repo!\n%s\n", err.Error())))
+		buildLog.Write([]byte("Failed to parse the build.json in the repo!\n"))
+		buildLog.Write([]byte(err.Error()))
 		return
 	}
+	for _, subproject := range repoBuildConfig.Subprojects {
+		notifications <- Notification{
+			msg:     fmt.Sprintf("Starting build for %s.%s@%s, you can find the logs at %s", repo.Name, subproject.Name, hookData.Ref, logUrl),
+			chat_id: repo.TelegramChatId}
 
-	notifications <- Notification{
-		msg:     fmt.Sprintf("Build of %s@%s succeeded!", repo.Name, hookData.Tag),
-		chat_id: repo.TelegramChatId}
-	Log.Printf("Finished building repo %+v", repo)
+		err = dockerBuild(repo, hookData, buildLog, subproject)
+		if err != nil {
+			Log.Printf("Failed building repo %+v", repo)
+			notifications <- Notification{msg: "Build failed!", chat_id: repo.TelegramChatId}
+			buildLog.Write([]byte(fmt.Sprintf("Failed to build repo!\n%s\n", err.Error())))
+			return
+		}
+
+		notifications <- Notification{
+			msg:     fmt.Sprintf("Build of %s.%s@%s succeeded!", repo.Name, subproject.Name, hookData.Ref),
+			chat_id: repo.TelegramChatId}
+		Log.Printf("Finished building repo %+v", repo)
+	}
 
 }

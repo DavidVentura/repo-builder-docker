@@ -3,58 +3,46 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 )
 
-var artifactUploaderDockerfile = `
-FROM builder
-RUN apt-get install --no-install-recommends -y s4cmd curl
-ARG TAG
-ARG S3_ACCESS_KEY
-ARG S3_SECRET_KEY
-ARG BUCKET_NAME
-ARG REPO_NAME
-ENV http_proxy=
-RUN s4cmd --endpoint-url=http://ci.labs:9000 ls s3://${BUCKET_NAME}/${TAG}/ || s4cmd --endpoint-url=http://ci.labs:9000 mb s3://${BUCKET_NAME}/${TAG}/
-RUN while read -r artifact; do s4cmd --endpoint-url=http://ci.labs:9000 put --force $artifact s3://${BUCKET_NAME}/${TAG}/; done </artifacts
-RUN curl -s http://david-dotopc:8080/deploy/${REPO_NAME}/${TAG}
-`
+func dockerBuild(repo Repo,
+	hookData HookData,
+	output io.Writer,
+	subproject SubProjectConfig) error {
+	/*
+		if _, err := os.Stat(repo.dstPath); os.IsNotExist(err) {
+			return err
+		}
 
-func dockerBuild(repo Repo, hookData HookData, output io.Writer) error {
-	dockerfile := path.Join(repo.dstPath, repo.RelativePathForDockerfile)
-	if _, err := os.Stat(dockerfile); os.IsNotExist(err) {
-		return err
-	}
+		fd, err := os.Open(config.BuildDockerfilePath)
+		if err != nil {
+			return err
+		}
+	*/
 
-	fd, err := os.Open(dockerfile)
+	subprojectDir := path.Join(repo.dstPath, subproject.Dir)
+	dockerfileDest := path.Join(subprojectDir, "Dockerfile")
+
+	err := fileCopy(config.BuildDockerfilePath, dockerfileDest)
 	if err != nil {
 		return err
 	}
-
-	content, err := ioutil.ReadAll(fd)
-	if err != nil {
-		return err
-	}
-
-	extendedContent := []byte(string(content) + artifactUploaderDockerfile)
-
-	wfd, err := os.Create(dockerfile)
-	if err != nil {
-		return err
-	}
-	wfd.Write(extendedContent)
-	wfd.Close()
+	output.Write([]byte(fmt.Sprintf("Copied %s to %s\n", config.BuildDockerfilePath, dockerfileDest)))
 
 	buildCmd := exec.Command("docker", "build",
-		"--build-arg", fmt.Sprintf("TAG=%s", hookData.Tag),
+		"--build-arg", fmt.Sprintf("TAG=%s", hookData.Ref),
 		"--build-arg", fmt.Sprintf("REPO_NAME=%s", repo.Name),
+		"--build-arg", fmt.Sprintf("SUBPROJECT=%s", subproject.Name),
 		"--build-arg", fmt.Sprintf("BUCKET_NAME=%s", repo.Bucket),
+		"--build-arg", fmt.Sprintf("ARTIFACTS=%s", strings.Join(subproject.Artifacts, "\n")),
+
 		"--build-arg", fmt.Sprintf("S3_ACCESS_KEY=%s", os.Getenv("S3_ACCESS_KEY")),
 		"--build-arg", fmt.Sprintf("S3_SECRET_KEY=%s", os.Getenv("S3_SECRET_KEY")),
-		path.Dir(dockerfile),
+		subprojectDir,
 	)
 
 	output.Write([]byte(fmt.Sprintf("Running command: %s\n", buildCmd.String())))
@@ -62,4 +50,24 @@ func dockerBuild(repo Repo, hookData HookData, output io.Writer) error {
 	buildCmd.Stdout = output
 	buildCmd.Stderr = output
 	return buildCmd.Run()
+}
+
+func fileCopy(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	return out.Close()
 }

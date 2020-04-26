@@ -19,21 +19,32 @@ type GogsPushEvent struct {
 }
 
 type Configuration struct {
-	LogPath       string
-	RepoCloneBase string
-	Repos         []Repo
+	LogPath             string
+	RepoCloneBase       string
+	Repos               []Repo
+	BuildDockerfilePath string
 }
 
 type HookData struct {
 	GitUrl string
-	Tag    string
+	Ref    string
 }
+
+type RepoBuildConfig struct {
+	Subprojects []SubProjectConfig `json:"subprojects"`
+}
+
+type SubProjectConfig struct {
+	Name      string   `json:"name"`
+	Dir       string   `json:"dir"`
+	Artifacts []string `json:"artifacts"`
+}
+
 type Repo struct {
-	Name                      string
-	GitUrl                    string
-	RelativePathForDockerfile string
-	Bucket                    string
-	TelegramChatId            int
+	Name           string
+	GitUrl         string
+	Bucket         string
+	TelegramChatId int
 
 	dstPath string
 }
@@ -61,6 +72,10 @@ func readConf(path string) {
 	}
 	if config.LogPath == "" {
 		fmt.Println("LogPath must be provided")
+		os.Exit(1)
+	}
+	if config.BuildDockerfilePath == "" {
+		fmt.Println("BuildDockerfilePath must be provided")
 		os.Exit(1)
 	}
 
@@ -96,4 +111,17 @@ func main() {
 	fmt.Printf("%+v\n", config)
 	go processNotifications()
 	hookEndpoint()
+	/*
+			repo := Repo{
+				Name:           "TestRepo",
+				GitUrl:         "ssh://git@gogs.davidventura.com.ar:2222/tati/critter-crossing.git",
+				Bucket:         "testbucket",
+				TelegramChatId: 0,
+			}
+			hookData := HookData{
+				GitUrl: "ssh://git@gogs.davidventura.com.ar:2222/tati/critter-crossing.git",
+				Ref:    "master",
+			}
+		buildRepo(repo, hookData)
+	*/
 }
