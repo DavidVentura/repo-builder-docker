@@ -37,4 +37,4 @@ RUN for artifact in ${ARTIFACTS}; do \
 	fi;\
 	s4cmd --endpoint-url=http://ci.labs:9000 put --force $artifact s3://${BUCKET_NAME}/${SUBPROJECT}/${TAG}/; \
 	done
-RUN curl -s http://david-dotopc.labs:8080/deploy/${REPO_NAME}/${SUBPROJECT}/${TAG}
+RUN curl -s http://david-dotopc.labs:8080/sync/deploy/${REPO_NAME}/${SUBPROJECT}/${TAG}
