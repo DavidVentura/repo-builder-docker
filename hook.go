@@ -102,23 +102,29 @@ func buildRepo(repo Repo, hookData HookData) {
 		buildLog.Write([]byte(err.Error()))
 		return
 	}
+	prettyRef := ""
+	if hookData.Ref != "master" {
+		prettyRef = fmt.Sprintf("@%s", hookData.Ref)
+	}
+
+	notifications <- Notification{
+		msg:     fmt.Sprintf("Starting build for %s%s, you can find the logs at %s", repo.Name, prettyRef, logUrl),
+		chat_id: repo.TelegramChatId}
+
 	for _, subproject := range repoBuildConfig.Subprojects {
-		notifications <- Notification{
-			msg:     fmt.Sprintf("Starting build for %s.%s@%s, you can find the logs at %s", repo.Name, subproject.Name, hookData.Ref, logUrl),
-			chat_id: repo.TelegramChatId}
 
 		err = dockerBuild(repo, hookData, buildLog, subproject)
 		if err != nil {
 			Log.Printf("Failed building repo %+v", repo)
 			notifications <- Notification{msg: "Build failed!", chat_id: repo.TelegramChatId}
-			buildLog.Write([]byte(fmt.Sprintf("Failed to build repo!\n%s\n", err.Error())))
+			buildLog.Write([]byte(fmt.Sprintf("Failed to build %s.%s!\n%s\n", repo.Name, subproject.Name, err.Error())))
 			return
 		}
 
-		notifications <- Notification{
-			msg:     fmt.Sprintf("Build of %s.%s@%s succeeded!", repo.Name, subproject.Name, hookData.Ref),
-			chat_id: repo.TelegramChatId}
-		Log.Printf("Finished building repo %+v", repo)
 	}
+	notifications <- Notification{
+		msg:     fmt.Sprintf("Build of %s%s succeeded!", repo.Name, prettyRef),
+		chat_id: repo.TelegramChatId}
+	Log.Printf("Finished building repo %+v", repo)
 
 }
