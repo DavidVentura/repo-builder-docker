@@ -23,6 +23,7 @@ type Configuration struct {
 	RepoCloneBase       string
 	Repos               []Repo
 	BuildDockerfilePath string
+	DeploymentBaseUri   string
 }
 
 type HookData struct {
@@ -78,7 +79,10 @@ func readConf(path string) {
 		fmt.Println("BuildDockerfilePath must be provided")
 		os.Exit(1)
 	}
-
+	if config.DeploymentBaseUri == "" {
+		fmt.Println("DeploymentBaseUri must be provided")
+		os.Exit(1)
+	}
 	for _, repo := range config.Repos {
 		if repo.TelegramChatId == 0 {
 			fmt.Printf("For repo %+v, telegram chat id is 0, so no notifications will be sent\n", repo)
@@ -109,19 +113,14 @@ func main() {
 	Log = log.New(mw, "", log.Ldate|log.Ltime|log.Lshortfile)
 
 	fmt.Printf("%+v\n", config)
+	for _, repo := range config.Repos {
+		Log.Printf("Creating bucket %s", repo.Bucket)
+		err = CreateBucket(repo.Bucket)
+		if err != nil {
+			Log.Printf("Bucket creation failed, exiting")
+			os.Exit(1)
+		}
+	}
 	go processNotifications()
 	hookEndpoint()
-	/*
-			repo := Repo{
-				Name:           "TestRepo",
-				GitUrl:         "ssh://git@gogs.davidventura.com.ar:2222/tati/critter-crossing.git",
-				Bucket:         "testbucket",
-				TelegramChatId: 0,
-			}
-			hookData := HookData{
-				GitUrl: "ssh://git@gogs.davidventura.com.ar:2222/tati/critter-crossing.git",
-				Ref:    "master",
-			}
-		buildRepo(repo, hookData)
-	*/
 }

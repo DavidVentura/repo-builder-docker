@@ -1,0 +1,37 @@
+{
+    "LogPath": "/tmp/",
+    "repoCloneBase": "/tmp/",
+    "BuildDockerfilePath": "/home/david/git/go-docker-builder/Dockerfile",
+    "DeploymentBaseUri": "http://david-dotopc.labs:8080/sync/deploy",
+    "Dockerfile_Types": {
+	    "npm": "npm-Dockerfile",
+	    "python": "python-Dockerfile"
+    },
+    "Repos": [
+        {
+            "Name":                      "Recipes",
+            "GitUrl":                    "ssh://git@gogs.davidventura.com.ar:2222/tati/kitchn.git",
+            "Bucket":                    "recipes",
+            "TelegramChatId":            -311945893
+        },
+        {
+            "Name":                      "Voices_of_meyserside",
+            "GitUrl":                    "ssh://git@gogs.davidventura.com.ar:2222/tati/voices-of-merseyside.git",
+            "Bucket":                    "voices",
+            "TelegramChatId":            -311945893
+        },
+        {
+            "Name":                      "Critter-Crossing",
+            "GitUrl":                    "ssh://git@gogs.davidventura.com.ar:2222/tati/critter-crossing.git",
+            "Bucket":                    "crittercrossing",
+            "TelegramChatId":            -311945893
+        },
+        {
+            "Name":                      "Test Repo",
+            "GitUrl":                    "ssh://git@gogs.davidventura.com.ar:2222/david/test.git",
+            "Bucket":                    "testrepo",
+            "TelegramChatId":            1719831
+        }
+    ]
+}
+

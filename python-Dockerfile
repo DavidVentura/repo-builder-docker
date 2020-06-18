@@ -1,0 +1,13 @@
+FROM python:3.8-slim-buster
+RUN echo 'Acquire::http::Proxy "http://proxies.labs:3142/apt-cacher/";' > /etc/apt/apt.conf.d/01proxy
+RUN apt-get update && apt-get install --no-install-recommends -y ca-certificates pip make
+
+ADD setup.py /tmp/setup.py
+RUN cd /tmp && python3.8 -m venv venv && /tmp/venv/bin/pip install -e .
+RUN mkdir -p /usr/src 
+
+COPY . /usr/src/app/
+WORKDIR /usr/src/app/
+
+ENTRYPOINT /bin/bash
+RUN make build

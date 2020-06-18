@@ -23,7 +23,8 @@ var logTemplate = template.Must(template.New("logTemplate").Parse(`
 func hookEndpoint() {
 	http.HandleFunc("/hook", hookHandler)
 	http.HandleFunc("/logs/", logHandler)
-	http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", nil)
+	Log.Printf("Failed to listen on the HTTP server! %s", err)
 }
 
 func logHandler(w http.ResponseWriter, r *http.Request) {
@@ -112,19 +113,16 @@ func buildRepo(repo Repo, hookData HookData) {
 		chat_id: repo.TelegramChatId}
 
 	for _, subproject := range repoBuildConfig.Subprojects {
-
-		err = dockerBuild(repo, hookData, buildLog, subproject)
+		err = BuildUploadAndDeploy(repo, hookData, buildLog, subproject)
 		if err != nil {
 			Log.Printf("Failed building repo %+v", repo)
-			notifications <- Notification{msg: "Build failed!", chat_id: repo.TelegramChatId}
 			buildLog.Write([]byte(fmt.Sprintf("Failed to build %s.%s!\n%s\n", repo.Name, subproject.Name, err.Error())))
 			return
 		}
-
 	}
 	notifications <- Notification{
-		msg:     fmt.Sprintf("Build of %s%s succeeded!", repo.Name, prettyRef),
+		msg:     fmt.Sprintf("Build/deploy of %s%s succeeded!", repo.Name, prettyRef),
 		chat_id: repo.TelegramChatId}
-	Log.Printf("Finished building repo %+v", repo)
+	Log.Printf("Finished building/deploying repo %+v", repo)
 
 }

@@ -1,0 +1,15 @@
+FROM node:13.7.0-buster-slim
+RUN echo 'Acquire::http::Proxy "http://proxies.labs:3142/apt-cacher/";' > /etc/apt/apt.conf.d/01proxy
+RUN apt-get update && apt-get install --no-install-recommends -y git openssh-client ca-certificates python2 make g++ 
+
+ADD package-lock.json /tmp/package-lock.json
+ADD package.json /tmp/package.json
+RUN cd /tmp && npm install
+RUN mkdir -p /usr/src 
+
+COPY . /usr/src/app/
+WORKDIR /usr/src/app/
+
+RUN ln -s /tmp/node_modules /usr/src/app/node_modules
+ENTRYPOINT /bin/bash
+RUN npm run build

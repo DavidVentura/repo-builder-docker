@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+type FilePair struct {
+	artifact   string
+	outputPath string
+}
+
 func dockerBuild(repo Repo,
 	hookData HookData,
 	output io.Writer,
@@ -34,14 +39,7 @@ func dockerBuild(repo Repo,
 	output.Write([]byte(fmt.Sprintf("Copied %s to %s\n", config.BuildDockerfilePath, dockerfileDest)))
 
 	buildCmd := exec.Command("docker", "build",
-		"--build-arg", fmt.Sprintf("TAG=%s", hookData.Ref),
-		"--build-arg", fmt.Sprintf("REPO_NAME=%s", repo.Name),
-		"--build-arg", fmt.Sprintf("SUBPROJECT=%s", subproject.Name),
-		"--build-arg", fmt.Sprintf("BUCKET_NAME=%s", repo.Bucket),
-		"--build-arg", fmt.Sprintf("ARTIFACTS=%s", strings.Join(subproject.Artifacts, "\n")),
-
-		"--build-arg", fmt.Sprintf("S3_ACCESS_KEY=%s", os.Getenv("S3_ACCESS_KEY")),
-		"--build-arg", fmt.Sprintf("S3_SECRET_KEY=%s", os.Getenv("S3_SECRET_KEY")),
+		"-t", strings.ToLower(fmt.Sprintf("%s-%s:%s", repo.Name, subproject.Name, hookData.Ref)),
 		subprojectDir,
 	)
 
@@ -50,6 +48,33 @@ func dockerBuild(repo Repo,
 	buildCmd.Stdout = output
 	buildCmd.Stderr = output
 	return buildCmd.Run()
+}
+func dockerCopyFile(repo Repo,
+	hookData HookData,
+	output io.Writer,
+	subproject SubProjectConfig,
+	fp FilePair) error {
+
+	imageName := strings.ToLower(fmt.Sprintf("%s-%s:%s", repo.Name, subproject.Name, hookData.Ref))
+	createCmd := exec.Command("docker", "create", "-ti", "--name", "dummy", imageName, "bash")
+	output.Write([]byte(strings.Join(createCmd.Args, " ")))
+	output.Write([]byte(fmt.Sprintf("Output..\n")))
+	createCmd.Stdout = output
+	createCmd.Stderr = output
+	createCmd.Run()
+
+	cpCmd := exec.Command("docker", "cp", fmt.Sprintf("dummy:/usr/src/app/%s", fp.artifact), fp.outputPath)
+	output.Write([]byte(strings.Join(cpCmd.Args, " ")))
+	cpCmd.Stdout = output
+	cpCmd.Stderr = output
+	cpCmd.Run()
+
+	deleteCmd := exec.Command("docker", "rm", "-f", "dummy")
+	output.Write([]byte(strings.Join(deleteCmd.Args, " ")))
+	deleteCmd.Stdout = output
+	deleteCmd.Stderr = output
+	deleteCmd.Run()
+	return nil
 }
 
 func fileCopy(src, dst string) error {
